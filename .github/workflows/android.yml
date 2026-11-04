@@ -16,33 +16,50 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Gradle Environment
+    - name: Setup Gradle 8.4
       uses: gradle/actions/setup-gradle@v3
+      with:
+        gradle-version: '8.4'
 
-    - name: Locate and Build Project
+    - name: Setup Android Project & Build
       run: |
         unzip -o project.zip -d extracted
-        
-        # settings.gradle অথবা build.gradle যেখানে আছে সেই আসল ফোল্ডার খুঁজে বের করবে
-        if [ -f "$(find extracted -name "settings.gradle" | head -n 1)" ]; then
-          TARGET_DIR=$(dirname "$(find extracted -name "settings.gradle" | head -n 1)")
-        elif [ -f "$(find extracted -name "build.gradle" | head -n 1)" ]; then
-          TARGET_DIR=$(dirname "$(find extracted -name "build.gradle" | head -n 1)")
-        else
-          echo "No gradle file found!"
-          exit 1
+        cd extracted
+
+        # মিসিং settings.gradle স্বয়ংক্রিয়ভাবে তৈরি করা
+        if [ -d "app" ] && [ ! -f "settings.gradle" ]; then
+          cat << 'EOF' > settings.gradle
+        pluginManagement {
+            repositories {
+                google()
+                mavenCentral()
+                gradlePluginPortal()
+            }
+        }
+        dependencyResolutionManagement {
+            repositoriesMode.set(RepositoriesMode.PREFER_SETTINGS)
+            repositories {
+                google()
+                mavenCentral()
+            }
+        }
+        rootProject.name = "ejitor"
+        include ':app'
+        EOF
+
+          cat << 'EOF' > build.gradle
+        plugins {
+            id 'com.android.application' version '8.2.0' apply false
+        }
+        EOF
         fi
-        
-        echo "Going into project directory: $TARGET_DIR"
-        cd "$TARGET_DIR"
-        
-        # gradlew না থাকলে বানিয়ে নিবে
-        if [ ! -f "gradlew" ]; then
-          gradle wrapper
-        fi
+
+        # Gradle Wrapper সেটআপ
+        gradle wrapper --gradle-version 8.4
         chmod +x gradlew
-        
-        ./gradlew assembleDebug --stacktrace
+
+        # মূল APK বিল্ড কমান্ড
+        ./gradlew :app:assembleDebug --stacktrace
 
     - name: Upload Built APK
       uses: actions/upload-artifact@v4
