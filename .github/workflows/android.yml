@@ -16,9 +16,6 @@ jobs:
         distribution: 'zulu'
         java-version: '17'
 
-    - name: Setup Android SDK
-      uses: android-actions/setup-android@v3
-
     - name: Setup Gradle 8.4
       uses: gradle/actions/setup-gradle@v3
       with:
@@ -29,7 +26,7 @@ jobs:
         unzip -o project.zip -d extracted
         cd extracted
 
-        # Settings এবং Root build তৈরি (সব রিপোজিটরি সহ)
+        # Settings এবং Root build তৈরি
         if [ -d "app" ] && [ ! -f "settings.gradle" ]; then
           cat << 'EOF' > settings.gradle
         pluginManagement {
@@ -63,7 +60,10 @@ jobs:
         gradle wrapper --gradle-version 8.4
         chmod +x gradlew
 
-        # বিল্ড রান এবং সুনির্দিষ্ট এরর লগ ক্যাপচার
+        # অটোমেটিক লাইসেন্স কনফার্ম করা
+        yes | sdkmanager --licenses > /dev/null 2>&1 || true
+
+        # বিল্ড রান
         set +e
         ./gradlew :app:assembleDebug --no-daemon 2>&1 | tee build.log
         BUILD_STATUS=$?
