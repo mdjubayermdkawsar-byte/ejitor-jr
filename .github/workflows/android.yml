@@ -21,12 +21,12 @@ jobs:
       with:
         gradle-version: '8.4'
 
-    - name: Setup Android Project & Build
+    - name: Setup and Build Android
       run: |
         unzip -o project.zip -d extracted
         cd extracted
 
-        # মিসিং settings.gradle স্বয়ংক্রিয়ভাবে তৈরি করা
+        # Settings এবং Root build তৈরি
         if [ -d "app" ] && [ ! -f "settings.gradle" ]; then
           cat << 'EOF' > settings.gradle
         pluginManagement {
@@ -54,12 +54,11 @@ jobs:
         EOF
         fi
 
-        # Gradle Wrapper সেটআপ
         gradle wrapper --gradle-version 8.4
         chmod +x gradlew
 
-        # মূল APK বিল্ড কমান্ড
-        ./gradlew :app:assembleDebug --stacktrace
+        # ক্লিন আউটপুট (যাতে শুধু মূল কারণ দেখা যায়)
+        ./gradlew :app:assembleDebug --no-daemon
 
     - name: Upload Built APK
       uses: actions/upload-artifact@v4
