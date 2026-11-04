@@ -19,23 +19,29 @@ jobs:
     - name: Setup Gradle Environment
       uses: gradle/actions/setup-gradle@v3
 
-    - name: Extract and Build Project
+    - name: Locate and Build Project
       run: |
-        mkdir -p extracted
         unzip -o project.zip -d extracted
-        cd extracted
         
-        # যদি ভেতর কোনো ফোল্ডার থাকে, তবে সেখানে ঢুকবে
-        if [ ! -f "build.gradle" ] && [ ! -f "settings.gradle" ]; then
-          cd $(find . -maxdepth 2 -name "app" -type d | head -n 1)/.. || true
+        # settings.gradle অথবা build.gradle যেখানে আছে সেই আসল ফোল্ডার খুঁজে বের করবে
+        if [ -f "$(find extracted -name "settings.gradle" | head -n 1)" ]; then
+          TARGET_DIR=$(dirname "$(find extracted -name "settings.gradle" | head -n 1)")
+        elif [ -f "$(find extracted -name "build.gradle" | head -n 1)" ]; then
+          TARGET_DIR=$(dirname "$(find extracted -name "build.gradle" | head -n 1)")
+        else
+          echo "No gradle file found!"
+          exit 1
         fi
-
+        
+        echo "Going into project directory: $TARGET_DIR"
+        cd "$TARGET_DIR"
+        
         # gradlew না থাকলে বানিয়ে নিবে
         if [ ! -f "gradlew" ]; then
           gradle wrapper
         fi
-
         chmod +x gradlew
+        
         ./gradlew assembleDebug --stacktrace
 
     - name: Upload Built APK
